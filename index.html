@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban de Produção</title>
+    <style>
+        /* Estilos Gerais - Preto, Branco e Minimalista */
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --border-color: #000000;
+            --gray: #f0f0f0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1, h2, h3 {
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Abas de Navegação */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active, .tab-btn:hover {
+            background: var(--text-color);
+            color: var(--bg-color);
+        }
+
+        .tab-content {
+            display: none;
+            border: 1px solid var(--border-color);
+            padding: 20px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Formulários */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            box-sizing: border-box;
+        }
+
+        button.action-btn {
+            background: var(--text-color);
+            color: var(--bg-color);
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-top: 10px;
+        }
+
+        button.action-btn:hover {
+            opacity: 0.8;
+        }
+
+        /* Layout do Kanban */
+        .family-section {
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+            page-break-inside: avoid;
+        }
+
+        .family-header {
+            background: var(--gray);
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+
+        .products-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .product-card {
+            border: 1px solid var(--border-color);
+            width: 120px;
+            display: flex;
+            flex-direction: column;
+            font-size: 0.8em;
+            text-align: center;
+        }
+
+        .product-img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--gray);
+        }
+
+        .product-info {
+            padding: 5px;
+        }
+
+        .product-info div {
+            border-bottom: 1px dotted #ccc;
+            padding: 2px 0;
+        }
+        .product-info div:last-child {
+            border-bottom: none;
+        }
+
+        /* Controles de Impressão */
+        .print-controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            background: var(--gray);
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .checkbox-group label {
+            display: inline-flex;
+            align-items: center;
+            font-weight: normal;
+        }
+
+        .checkbox-group input {
+            width: auto;
+            margin-right: 5px;
+        }
+
+        /* Regras de Impressão */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-area, #print-area * {
+                visibility: visible;
+            }
+            #print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .family-section {
+                margin-bottom: 20px;
+            }
+            /* Garante que cores de fundo apareçam na impressão */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container no-print">
+    <h1>Kanban de Produção</h1>
+    
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab('tab-kanban')">Quadro Kanban</button>
+        <button class="tab-btn" onclick="openTab('tab-familia')">Cadastrar Família</button>
+        <button class="tab-btn" onclick="openTab('tab-produto')">Cadastrar Produto</button>
+    </div>
+
+    <!-- Aba: Cadastro de Família -->
+    <div id="tab-familia" class="tab-content">
+        <h2>Nova Família</h2>
+        <form id="form-familia">
+            <div class="form-group">
+                <label>Nome da Família</label>
+                <input type="text" id="fam-nome" required>
+            </div>
+            <div class="form-group">
+                <label>Tecido (ex: linho, viscose)</label>
+                <input type="text" id="fam-tecido" required>
+            </div>
+            <div class="form-group">
+                <label>Coleção (ex: inverno 26)</label>
+                <input type="text" id="fam-colecao" required>
+            </div>
+            <div class="form-group">
+                <label>Semana (ex: semana 1)</label>
+                <input type="text" id="fam-semana" required>
+            </div>
+            <button type="submit" class="action-btn">Salvar Família</button>
+        </form>
+    </div>
+
+    <!-- Aba: Cadastro de Produto -->
+    <div id="tab-produto" class="tab-content">
+        <h2>Novo Produto</h2>
+        <form id="form-produto">
+            <div class="form-group">
+                <label>REF (ex: 00001)</label>
+                <input type="text" id="prod-ref" required>
+            </div>
+            <div class="form-group">
+                <label>Família</label>
+                <select id="prod-familia" required></select>
+            </div>
+            <div class="form-group">
+                <label>Foto (Opcional)</label>
+                <input type="file" id="prod-foto" accept="image/*">
+            </div>
+            <div class="form-group">
+                <label>Quantidade de Cores</label>
+                <input type="number" id="prod-cores" min="1" required>
+            </div>
+            <div class="form-group">
+                <label>Data de Entrada na Fábrica</label>
+                <input type="text" id="prod-data" placeholder="ex: 28 abr" required>
+            </div>
+            <button type="submit" class="action-btn">Salvar Produto</button>
+        </form>
+    </div>
+</div>
+
+<!-- Área do Kanban (Visualização e Impressão) -->
+<div id="tab-kanban" class="tab-content active container">
+    <div class="print-controls no-print">
+        <h3>Selecione as famílias para imprimir:</h3>
+        <div class="checkbox-group" id="family-filters"></div>
+        <button class="action-btn" onclick="window.print()">Imprimir PDF</button>
+        <button class="action-btn" style="background: #e74c3c;" onclick="limparDados()">Limpar Todos os Dados</button>
+    </div>
+
+    <div id="print-area">
+        <!-- O conteúdo do Kanban será gerado aqui via JavaScript -->
+    </div>
+</div>
+
+<script>
+    // Inicialização do Banco de Dados Local
+    let db = JSON.parse(localStorage.getItem('kanbanDB')) || { familias: [], produtos: [] };
+
+    // Navegação entre abas
+    function openTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+
+        if (tabId === 'tab-produto') atualizarSelectFamilias();
+        if (tabId === 'tab-kanban') renderKanban();
+    }
+
+    // Salvar Dados no LocalStorage
+    function saveData() {
+        localStorage.setItem('kanbanDB', JSON.stringify(db));
+    }
+
+    // Cadastro de Família
+    document.getElementById('form-familia').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const novaFamilia = {
+            id: Date.now().toString(),
+            nome: document.getElementById('fam-nome').value,
+            tecido: document.getElementById('fam-tecido').value,
+            colecao: document.getElementById('fam-colecao').value,
+            semana: document.getElementById('fam-semana').value
+        };
+        db.familias.push(novaFamilia);
+        saveData();
+        this.reset();
+        alert('Família cadastrada com sucesso!');
+    });
+
+    // Atualizar Select do formulário de produtos
+    function atualizarSelectFamilias() {
+        const select = document.getElementById('prod-familia');
+        select.innerHTML = '<option value="">Selecione uma família</option>';
+        db.familias.forEach(f => {
+            select.innerHTML += `<option value="${f.id}">${f.nome} - ${f.tecido}</option>`;
+        });
+    }
+
+    // Processar imagem para Base64
+    function getBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+    }
+
+    // Cadastro de Produto
+    document.getElementById('form-produto').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        let fotoBase64 = '';
+        const fotoInput = document.getElementById('prod-foto');
+        if (fotoInput.files.length > 0) {
+            fotoBase64 = await getBase64(fotoInput.files[0]);
+        }
+
+        const novoProduto = {
+            id: Date.now().toString(),
+            ref: document.getElementById('prod-ref').value,
+            familiaId: document.getElementById('prod-familia').value,
+            foto: fotoBase64,
+            cores: document.getElementById('prod-cores').value,
+            data: document.getElementById('prod-data').value
+        };
+
+        db.produtos.push(novoProduto);
+        
+        try {
+            saveData();
+            this.reset();
+            alert('Produto cadastrado com sucesso!');
+        } catch (e) {
+            alert('Erro ao salvar. O limite de armazenamento do navegador pode ter sido atingido devido ao tamanho das imagens.');
+        }
+    });
+
+    // Renderizar o Quadro Kanban
+    // Renderizar o Quadro Kanban corrigido
+    function renderKanban() {
+        const printArea = document.getElementById('print-area');
+        const filterArea = document.getElementById('family-filters');
+        
+        printArea.innerHTML = '';
+        filterArea.innerHTML = '';
+
+        if (db.familias.length === 0) {
+            printArea.innerHTML = '<p>Nenhuma família cadastrada.</p>';
+            return;
+        }
+
+        db.familias.forEach(familia => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" value="${familia.id}" checked onchange="toggleFamily('${familia.id}')"> ${familia.nome}`;
+            filterArea.appendChild(label);
+
+            const produtosFamilia = db.produtos.filter(p => p.familiaId === familia.id);
+
+            const section = document.createElement('div');
+            section.className = 'family-section';
+            section.id = `fam-section-${familia.id}`;
+
+            const header = document.createElement('div');
+            header.className = 'family-header';
+            header.innerText = `${familia.nome} - TECIDO: ${familia.tecido} - COLEÇÃO: ${familia.colecao} - ${familia.semana}`;
+            section.appendChild(header);
+
+            const grid = document.createElement('div');
+            grid.className = 'products-grid';
+
+            produtosFamilia.forEach(prod => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                
+                // Correção aqui: Verifica se existe foto, senão usa uma div de placeholder
+                const fotoHtml = prod.foto 
+                    ? `<img src="${prod.foto}" class="product-img">` 
+                    : `<div class="product-img" style="display:flex; align-items:center; justify-content:center; background:#eee; color:#999; font-size:10px; height:120px;">SEM FOTO</div>`;
+
+                card.innerHTML = `
+                    ${fotoHtml}
+                    <div class="product-info">
+                        <div>REF: ${prod.ref}</div>
+                        <div>${prod.cores} Cor(es)</div>
+                        <div>Entrada: ${prod.data}</div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            if (produtosFamilia.length === 0) {
+                grid.innerHTML = '<div style="padding: 10px; font-size: 0.8em;">Nenhum produto cadastrado nesta família.</div>';
+            }
+
+            section.appendChild(grid);
+            printArea.appendChild(section);
+        });
+    }
+
+    // Alternar visibilidade das famílias para impressão
+    function toggleFamily(id) {
+        const section = document.getElementById(`fam-section-${id}`);
+        if (section.style.display === 'none') {
+            section.style.display = 'block';
+        } else {
+            section.style.display = 'none';
+        }
+    }
+
+    // Limpar Dados (Reset)
+    function limparDados() {
+        if(confirm('Tem certeza? Isso apagará todos os kanbans salvos.')) {
+            localStorage.removeItem('kanbanDB');
+            db = { familias: [], produtos: [] };
+            renderKanban();
+        }
+    }
+
+    // Render inicial
+    renderKanban();
+</script>
+
+</body>
+</html>
